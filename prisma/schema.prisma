@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -19,73 +13,64 @@ enum Role {
 }
 
 model User {
-  id    String @id @default(cuid())
-  name  String
-  email String @unique
-  role  Role
+  id               String                 @id @default(cuid())
+  name             String
+  email            String                 @unique
+  role             Role
 
-  shifts         Shift[]                @relation("AssignedShifts")
-  swapVolunteers SwapRequestVolunteer[]
-  approvalsGiven ApprovalLog[]          @relation("ManagerApprovals")
-  SwapRequest    SwapRequest[]
+  shifts           Shift[]               @relation("AssignedShifts")
+  swapRequests     SwapRequest[]         @relation("RequestedSwaps")
+  volunteerSwaps   SwapRequest[]         @relation("VolunteerSwaps")
+  approvalsGiven   ApprovalLog[]         @relation("ManagerApprovals")
+  volunteeredSwaps SwapRequestVolunteer[]
 }
 
 model Shift {
-  id     String   @id @default(cuid())
-  date   DateTime
-  time   String
-  role   String
-  userId String
+  id            String          @id @default(cuid())
+  date          DateTime
+  time          String
+  role          String
+  userId        String
 
-  assignedTo   User          @relation("AssignedShifts", fields: [userId], references: [id])
-  swapRequests SwapRequest[] // back relation
+  assignedTo    User            @relation("AssignedShifts", fields: [userId], references: [id])
+  swapRequests  SwapRequest[]
 }
 
-// model SwapRequest {
-//   id           String         @id @default(cuid())
-//   shiftId      String
-//   userId       String
-//   note         String
-
-//   shift        Shift          @relation(fields: [shiftId], references: [id])
-//   requestedBy  User           @relation("RequestedSwaps", fields: [userId], references: [id])
-//   volunteers   SwapRequestVolunteer[]
-//   approvalLogs ApprovalLog[]
-// }
-
 model SwapRequest {
-  id                   String                @id @default(cuid())
-  shift                Shift                 @relation(fields: [shiftId], references: [id])
-  shiftId              String
-  requester            User                  @relation("Requester", fields: [requesterId], references: [id])
-  requesterId          String
-  volunteer            User?                 @relation("Volunteer", fields: [volunteerId], references: [id])
-  volunteerId          String?
-  note                 String?
-  status               String                @default("open") // open | matched | approved | rejected
-  createdAt            DateTime              @default(now())
-  User                 User?                 @relation(fields: [userId], references: [id])
-  userId               String?
-  SwapRequestVolunteer SwapRequestVolunteer?
-  ApprovalLog          ApprovalLog[]
+  id             String                  @id @default(cuid())
+  shiftId        String
+  requesterId    String
+  volunteerId    String?
+  note           String?
+  status         String                  @default("open") // open | matched | approved | rejected
+  createdAt      DateTime                @default(now())
+
+  shift          Shift                   @relation(fields: [shiftId], references: [id])
+  requester      User                    @relation("RequestedSwaps", fields: [requesterId], references: [id])
+  volunteer      User?                   @relation("VolunteerSwaps", fields: [volunteerId], references: [id])
+
+  volunteers     SwapRequestVolunteer[]
+  approvalLogs   ApprovalLog[]
 }
 
 model SwapRequestVolunteer {
-  id            String @id @default(cuid())
-  swapRequestId String @unique
+  id            String        @id @default(cuid())
+  swapRequestId String
   userId        String
 
-  swapRequest SwapRequest @relation(fields: [swapRequestId], references: [id])
-  user        User        @relation(fields: [userId], references: [id])
+  swapRequest   SwapRequest   @relation(fields: [swapRequestId], references: [id])
+  user          User          @relation(fields: [userId], references: [id])
+
+  @@unique([swapRequestId, userId]) // to prevent duplicate volunteers
 }
 
 model ApprovalLog {
-  id            String @id @default(cuid())
+  id            String        @id @default(cuid())
   swapRequestId String
   managerId     String
   status        String
   comment       String
 
-  swapRequest SwapRequest @relation(fields: [swapRequestId], references: [id])
-  approvedBy  User        @relation("ManagerApprovals", fields: [managerId], references: [id])
+  swapRequest   SwapRequest   @relation(fields: [swapRequestId], references: [id])
+  approvedBy    User          @relation("ManagerApprovals", fields: [managerId], references: [id])
 }
